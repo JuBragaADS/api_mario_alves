@@ -1,0 +1,269 @@
+ // This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+ 
+model Livro {
+  id                 Int      @id @default(autoincrement())
+  titulo             String   @db.VarChar(255)
+  foto               String   @db.VarChar(1024) // Novo limite de 1024 caracteres
+  sinopse            String?  @db.VarChar(1000)
+
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  usuario            Usuario[]
+
+  reservas           Reserva[] 
+  renovacoes         Renovacao[]
+
+  comentarios        Comentario[]
+
+  emprestimos         Emprestimo[]
+
+  autores             Autor[]
+  generos             Genero[]
+  editoras            Editora   @relation(fields: [editoraId], references: [id])
+  editoraId           Int
+  
+  @@map("livros")
+ 
+}
+
+model Autor {
+  id                 Int      @id @default(autoincrement())
+  nome               String
+  pais               String
+
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  usuario            Usuario[]
+
+  reservas           Reserva[] 
+  renovacoes         Renovacao[]
+
+  comentarios        Comentario[]
+
+  emprestimos         Emprestimo[]
+
+  livros              Livro[]
+  generos             Genero[]
+  editoras            Editora[]
+
+  @@map("autores")
+}
+
+model Genero {
+  id                 Int      @id @default(autoincrement())
+  tipo               String
+
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  usuario            Usuario[]
+
+  reservas           Reserva[] 
+  renovacoes         Renovacao[]
+
+  comentarios        Comentario[]
+
+  emprestimos         Emprestimo[]
+
+  livros               Livro[]
+  autores               Autor[]
+  editoras             Editora[]
+
+  @@map("generos")
+}
+
+model Editora {
+  id                      Int      @id @default(autoincrement())
+  nome                    String
+  
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  usuario            Usuario[]
+
+  reservas           Reserva[] 
+  renovacoes         Renovacao[]
+
+  comentarios        Comentario[]
+
+  emprestimos         Emprestimo[]
+
+  autores       Autor[]
+  generos       Genero[]
+  livros        Livro[]
+  
+  @@map("editoras")
+
+}
+
+model Usuario {
+  id            Int        @id @default(autoincrement())
+  nome          String     @db.VarChar(60)
+  email         String     @db.VarChar(60) @unique
+  telefone      String     @db.VarChar(15) // telefone deve ser varchar(15)
+  escolaridade   Escolaridade   @default(OUTRO) // Alterado para enum Instituicao com default OUTRO
+  instituicao  String     @db.VarChar(60)
+  diaPagamento  Int        @default(02) // diaPagamento deve ser Int com default 2
+  senha         String     @db.VarChar(60) // senha deve ser varchar(60)
+  admin         Boolean    @default(false)
+   // Alterado para Boolean com default false
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  livros        Livro[]
+  reservas      Reserva[]
+  renovacoes    Renovacao[]
+  comentarios   Comentario[]
+  emprestimos   Emprestimo[]
+  autores       Autor[]
+  generos       Genero[]
+  editoras      Editora[]
+  pagamentos    Pagamento[]
+
+  @@map("usuarios")
+}
+
+enum  Escolaridade {
+  ENSINO_MEDIO
+  ENSINO_SUPERIOR
+  POS_GRADUACAO
+  MESTRADO
+  DOUTORADO
+  OUTRO
+}
+
+model Pagamento {
+  id              Int      @id @default(autoincrement())
+  dataPagamento   DateTime @db.Date // dever se somente Date
+  valor           Decimal  @db.Decimal(10, 2) // valor deve ser decimal(10,2)
+  formaPagamento  String   @db.VarChar(20) // formaPagamento deve ser varchar(20)
+  
+  pago            Boolean  @default(false) // <-- CAMPO ADICIONADO PARA CONTROLAR O STATUS
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  usuario         Usuario  @relation(fields: [usuarioId], references: [id])
+  usuarioId       Int
+
+  @@map("pagamentos")
+}
+
+enum MetodoPagamento {
+  DINHEIRO
+  PIX
+  CARTAO_CREDITO
+  CARTAO_DEBITO
+}
+
+model Reserva {
+  id             Int       @id @default(autoincrement())
+
+  livro          Livro     @relation(fields: [livroId], references: [id])
+  livroId        Int
+
+  usuario        Usuario   @relation(fields: [usuarioId], references: [id])
+  usuarioId      Int       
+  titulo         String
+  datadaReserva  DateTime  @db.Date // dever se somente Date
+
+
+  emprestimos      Emprestimo[] // Corrigido para camelCase
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt 
+
+  autores               Autor[]
+  generos               Genero[]
+  Editoras              Editora[] 
+ 
+  @@map("reservas") 
+
+}
+
+model Renovacao {
+  id                    Int         @id @default(autoincrement())
+  
+  datadaEntrega         DateTime
+
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt 
+
+  usuarioId             Int
+  usuario              Usuario        @relation(fields: [usuarioId], references: [id])
+
+  livroId               Int
+  livro                 Livro          @relation(fields: [livroId], references: [id])
+
+  emprestimos           Emprestimo[]
+
+  autores               Autor[]
+  generos               Genero[]
+  Editoras              Editora[]
+
+  @@map("renovacoes")
+ 
+}
+
+model Comentario {
+  id                  Int           @id @default(autoincrement())
+
+  livro                Livro         @relation(fields: [livroId], references: [id])
+  livroId              Int
+
+  usuario               Usuario        @relation(fields: [usuarioId], references: [id])
+  usuarioId             Int           
+  
+  descricao             String       @db.VarChar(255) 
+  resposta              String?      @db.VarChar(255)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  autores               Autor[]
+  generos               Genero[]
+  Editoras              Editora[]
+
+
+  @@map("comentarios")               
+
+}
+
+model Emprestimo { 
+  id                    Int           @id  @default(autoincrement())
+  titulo                String        
+  datadaReserva         DateTime  
+  status                String
+  datadaEntrega         DateTime
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  
+  usuarioId             Int
+  usuario               Usuario        @relation(fields: [usuarioId], references: [id]) 
+
+  livro                 Livro         @relation(fields: [livroId], references: [id])
+  livroId               Int
+
+  reservas              Reserva[]
+  renovacoes            Renovacao[]
+  autores               Autor[]
+  generos               Genero[]
+  Editoras              Editora[]
+
+  @@map("emprestimos")
+
+}
