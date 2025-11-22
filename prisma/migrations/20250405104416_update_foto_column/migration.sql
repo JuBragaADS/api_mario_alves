@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE `livros` MODIFY `titulo` VARCHAR(255) NOT NULL,
-    MODIFY `foto` VARCHAR(1024) NOT NULL;
